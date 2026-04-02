@@ -1,27 +1,48 @@
 #!/bin/bash
-# Share Claude Code login between Macs without opening a browser.
+# Share your Claude Code login to another Mac. No browser needed.
 #
-# Run this on the Mac that's LOGGED IN to Claude Code.
-# It outputs a single command. Copy that command and run it on the other Mac.
+# Usage (just paste this in Terminal):
+#   curl -sL https://raw.githubusercontent.com/yuvrajangadsingh/claude-code-hacks/main/share-login.sh | bash
 #
-# - Only shares auth credentials (no MCP tokens or other data)
-# - Auto-detects the target machine's macOS username
-# - No settings, sessions, or CLAUDE.md files are affected
-# - Works with Pro, Max, Teams, and Enterprise subscriptions
+# What happens:
+#   1. Extracts your Claude Code credentials from Keychain
+#   2. Strips out everything except login info (no MCP tokens, no local data)
+#   3. Copies a single command to your clipboard
+#   4. Send that command to whoever needs it
+#   5. They paste it in their Terminal, Claude Code starts logged in
 
-set -euo pipefail
+# grab credentials from keychain
+RAW=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null)
 
-TOKEN=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null | \
-  python3 -c "import sys,json; d=json.load(sys.stdin); print(json.dumps({'claudeAiOauth':d['claudeAiOauth']}))" 2>/dev/null)
-
-if [ -z "$TOKEN" ]; then
-  echo "ERROR: No Claude Code credentials found in keychain."
-  echo "Make sure you're logged into Claude Code on this machine."
+if [ -z "$RAW" ]; then
+  echo ""
+  echo "  Could not find Claude Code credentials."
+  echo "  Make sure Claude Code is installed and you're logged in."
+  echo "  Run 'claude' first, then try again."
+  echo ""
   exit 1
 fi
 
+# strip mcp tokens, keep only auth (python3 ships with xcode cli tools on every mac)
+AUTH=$(echo "$RAW" | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    print(json.dumps({'claudeAiOauth': d['claudeAiOauth']}))
+except:
+    print(sys.stdin.read())
+" 2>/dev/null)
+
+# fallback to raw if python3 failed (still works, just includes empty mcp tokens)
+[ -z "$AUTH" ] && AUTH="$RAW"
+
+# build the command and copy to clipboard
+CMD="security delete-generic-password -s \"Claude Code-credentials\" 2>/dev/null; security add-generic-password -s \"Claude Code-credentials\" -a \"\$(whoami)\" -w '$AUTH' && echo 'Done. Run: claude'"
+
+echo "$CMD" | pbcopy 2>/dev/null
+
 echo ""
-echo "Run this on the other Mac:"
-echo ""
-echo "security delete-generic-password -s \"Claude Code-credentials\" 2>/dev/null; security add-generic-password -s \"Claude Code-credentials\" -a \"\$(whoami)\" -w '$TOKEN' && claude"
+echo "  Copied to clipboard."
+echo "  Send it to whoever needs to login."
+echo "  They paste it in Terminal and run 'claude'."
 echo ""

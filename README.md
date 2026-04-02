@@ -4,33 +4,30 @@ Useful scripts and tricks for Claude Code CLI.
 
 ## share-login.sh
 
-Share your Claude Code login between two Macs without opening a browser on the second machine.
+Share your Claude Code login to another Mac without opening a browser.
 
-### How it works
+### Quick start
 
-1. Run `./share-login.sh` on the Mac that's logged in
-2. It outputs a single command
-3. Copy that command and run it on the other Mac
-4. Claude Code starts, logged into your account
+Paste this in Terminal on the Mac that's logged in:
+
+```bash
+curl -sL https://raw.githubusercontent.com/yuvrajangadsingh/claude-code-hacks/main/share-login.sh | bash
+```
+
+That's it. A command gets copied to your clipboard. Send it to whoever needs it. They paste it in their Terminal.
 
 ### What it does
 
-- Extracts your OAuth credentials from macOS Keychain
-- Strips out MCP tokens and other local data (only shares auth)
-- Generates a command that auto-detects the target machine's username via `$(whoami)`
-- No settings, sessions, projects, or CLAUDE.md files are affected on either machine
+- Extracts OAuth credentials from macOS Keychain
+- Strips out MCP tokens and local data (only shares auth)
+- Copies a transfer command to your clipboard
+- The transfer command auto-detects the target machine's username
+- No settings, sessions, projects, or CLAUDE.md files are touched on either machine
 
 ### Requirements
 
-- macOS (uses `security` CLI for Keychain access)
-- Python 3 (for JSON parsing)
+- macOS on both machines
 - Claude Code installed on both machines
-
-### Usage
-
-```bash
-chmod +x share-login.sh
-./share-login.sh
-```
+- Logged into Claude Code on the source machine
 
 Works with Pro, Max, Teams, and Enterprise subscriptions.
